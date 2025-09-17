@@ -18,8 +18,17 @@ import {
   Platform,
   TextStyle,
   TextInput,
-  Keyboard
+  Keyboard,
+  VirtualizedList,
+  ListRenderItemInfo
 } from 'react-native';
+
+type DropDownItemData = {
+  label: string;
+  value: any;
+  icon?: string;
+  nativeID?: string;
+};
 
 interface DropDownItemProperties {
   first: boolean;
@@ -153,7 +162,7 @@ class DropDownItem extends React.PureComponent<DropDownItemProperties> {
 
 export interface DropDownProperties {
   label?: string;
-  items: Array<{ label: string; value: any; icon?: string; nativeID?: string }>;
+  items: DropDownItemData[];
   value: any | null;
   onChange: (value: any) => void;
   onPress?: () => void | boolean | Promise<void> | Promise<boolean>;
@@ -168,6 +177,7 @@ export interface DropDownProperties {
   icon?: string | undefined;
   arrowColor?: string | undefined;
   searchable?: SearchableProps;
+  virtualized?: true | VirtualizedProps | null;
 }
 
 export interface SearchableProps {
@@ -175,10 +185,22 @@ export interface SearchableProps {
   minItemsToSearch?: number;
 }
 
+export interface VirtualizedProps {
+  initialNumToRender?: number;
+  maxToRenderPerBatch?: number;
+  windowSize?: number;
+}
+
 export interface DropDownState {
   modalOpen: boolean;
   searchText: string;
 }
+
+const DEFAULT_VIRTUALIZED: VirtualizedProps = {
+  initialNumToRender: 20,
+  maxToRenderPerBatch: 30,
+  windowSize: 10
+};
 
 export class DropDown extends React.Component<
   DropDownProperties,
@@ -431,6 +453,54 @@ export class DropDown extends React.Component<
     return styles;
   };
 
+  renderItemsList = (filteredItems: DropDownItemData[]) => {
+    const { iconComponent, virtualized } = this.props;
+
+    const renderItem = ({
+      item,
+      index
+    }: ListRenderItemInfo<DropDownItemData>) => (
+      <DropDownItem
+        nativeID={item.nativeID}
+        first={index === 0}
+        last={index === filteredItems.length - 1}
+        label={item.label}
+        value={item.value}
+        onPress={this.handleItemPress}
+        icon={item.icon}
+        iconComponent={iconComponent}
+      />
+    );
+
+    if (virtualized == null) {
+      return (
+        <FlatList
+          data={filteredItems}
+          initialNumToRender={filteredItems.length}
+          keyExtractor={item => item.value.toString()}
+          renderItem={renderItem}
+        />
+      );
+    }
+
+    const virtualizedProps: VirtualizedProps =
+      virtualized === true
+        ? { ...DEFAULT_VIRTUALIZED }
+        : { ...DEFAULT_VIRTUALIZED, ...virtualized };
+
+    return (
+      <VirtualizedList
+        getItem={(_, index) => filteredItems[index]}
+        getItemCount={() => filteredItems.length}
+        keyExtractor={item => item.value.toString()}
+        renderItem={renderItem}
+        initialNumToRender={virtualizedProps.initialNumToRender}
+        maxToRenderPerBatch={virtualizedProps.maxToRenderPerBatch}
+        windowSize={virtualizedProps.windowSize}
+      />
+    );
+  };
+
   render() {
     const { modalOpen, searchText } = this.state;
     const {
@@ -443,7 +513,6 @@ export class DropDown extends React.Component<
       disabled,
       labelStyle,
       inputStyle,
-      iconComponent,
       nativeID,
       onPress,
       icon,
@@ -530,25 +599,7 @@ export class DropDown extends React.Component<
                   </View>
                 )}
                 {filteredItems.length > 0 ? (
-                  <FlatList
-                    data={filteredItems}
-                    initialNumToRender={filteredItems.length}
-                    keyExtractor={item => item.value.toString()}
-                    renderItem={({ item, index }) => {
-                      return (
-                        <DropDownItem
-                          nativeID={item.nativeID}
-                          first={index === 0}
-                          last={index === filteredItems.length - 1}
-                          label={item.label}
-                          value={item.value}
-                          onPress={this.handleItemPress}
-                          icon={item.icon}
-                          iconComponent={iconComponent}
-                        />
-                      );
-                    }}
-                  />
+                  this.renderItemsList(filteredItems)
                 ) : (
                   <View style={styles.emptyMessageContainer}>
                     <FontAwesome
