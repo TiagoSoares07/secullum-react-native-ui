@@ -177,7 +177,7 @@ export interface DropDownProperties {
   icon?: string | undefined;
   arrowColor?: string | undefined;
   searchable?: SearchableProps;
-  virtualized?: true | VirtualizedProps | null;
+  virtualized?: true | VirtualizedProps;
 }
 
 export interface SearchableProps {
@@ -484,9 +484,9 @@ export class DropDown extends React.Component<
     }
 
     const virtualizedProps: VirtualizedProps =
-      virtualized === true
-        ? { ...DEFAULT_VIRTUALIZED }
-        : { ...DEFAULT_VIRTUALIZED, ...virtualized };
+      typeof virtualized === 'object'
+        ? { ...DEFAULT_VIRTUALIZED, ...virtualized }
+        : { ...DEFAULT_VIRTUALIZED };
 
     return (
       <VirtualizedList
