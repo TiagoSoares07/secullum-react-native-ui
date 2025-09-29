@@ -196,7 +196,7 @@ export interface DropDownState {
   searchText: string;
 }
 
-const DEFAULT_VIRTUALIZED: VirtualizedProps = {
+const DEFAULT_VIRTUALIZED_PROPS: VirtualizedProps = {
   initialNumToRender: 20,
   maxToRenderPerBatch: 30,
   windowSize: 10
@@ -485,8 +485,8 @@ export class DropDown extends React.Component<
 
     const virtualizedProps: VirtualizedProps =
       typeof virtualized === 'object'
-        ? { ...DEFAULT_VIRTUALIZED, ...virtualized }
-        : { ...DEFAULT_VIRTUALIZED };
+        ? { ...DEFAULT_VIRTUALIZED_PROPS, ...virtualized }
+        : DEFAULT_VIRTUALIZED_PROPS;
 
     return (
       <VirtualizedList
