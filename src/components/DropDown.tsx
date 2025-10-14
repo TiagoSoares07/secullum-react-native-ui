@@ -179,6 +179,7 @@ export interface DropDownProperties {
   arrowColor?: string | undefined;
   searchable?: SearchableProps;
   virtualized?: true | VirtualizedProps;
+  useKeyboardAvoidingView?: boolean;
 }
 
 export interface SearchableProps {
@@ -517,7 +518,8 @@ export class DropDown extends React.Component<
       nativeID,
       onPress,
       icon,
-      searchable
+      searchable,
+      useKeyboardAvoidingView
     } = this.props;
 
     const selectedItem = items.find(x => x.value === value);
@@ -527,6 +529,56 @@ export class DropDown extends React.Component<
     const theme = getTheme();
 
     const filteredItems = searchable ? this.filterItems() : items;
+
+    const conteudoModal = (
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View
+          style={[
+            styles.modalContainer,
+            Platform.OS === 'web' && {
+              marginVertical: '10px',
+              marginHorizontal: 'auto',
+              width: '90%',
+              maxWidth: 450,
+              maxHeight: 300,
+              justifyContent: 'center'
+            }
+          ]}
+        >
+          {this.shouldDisplaySearchField() && (
+            <View style={styles.searchContainer}>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  nativeID={nativeID + '-text-search'}
+                  style={styles.searchInput}
+                  value={searchText}
+                  placeholder={searchable && searchable.placeHolder}
+                  onChangeText={text => this.setState({ searchText: text })}
+                />
+                <FontAwesome
+                  name="search"
+                  size={16}
+                  color="gray"
+                  style={styles.searchIcon}
+                />
+              </View>
+            </View>
+          )}
+          {filteredItems.length > 0 ? (
+            this.renderItemsList(filteredItems)
+          ) : (
+            <View style={styles.emptyMessageContainer}>
+              <FontAwesome
+                name="warning"
+                color={theme.warningColor}
+                size={24}
+              />
+              <Text style={styles.modalItem}>{emptyMessage}</Text>
+            </View>
+          )}
+        </View>
+      </TouchableWithoutFeedback>
+    );
 
     return (
       <TouchableWithoutFeedback
@@ -564,59 +616,20 @@ export class DropDown extends React.Component<
             onRequestClose={() => this.setState({ modalOpen: false })}
             overlayStyle={styles.modalOverlay}
           >
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            >
-              <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                <View
-                  style={[
-                    styles.modalContainer,
-                    Platform.OS === 'web' && {
-                      marginVertical: '10px',
-                      marginHorizontal: 'auto',
-                      width: '90%',
-                      maxWidth: 450,
-                      maxHeight: 300,
-                      justifyContent: 'center'
-                    }
-                  ]}
-                >
-                  {this.shouldDisplaySearchField() && (
-                    <View style={styles.searchContainer}>
-                      <View style={styles.inputWrapper}>
-                        <TextInput
-                          nativeID={nativeID + '-text-search'}
-                          style={styles.searchInput}
-                          value={searchText}
-                          placeholder={searchable && searchable.placeHolder}
-                          onChangeText={text =>
-                            this.setState({ searchText: text })
-                          }
-                        />
-                        <FontAwesome
-                          name="search"
-                          size={16}
-                          color="gray"
-                          style={styles.searchIcon}
-                        />
-                      </View>
-                    </View>
-                  )}
-                  {filteredItems.length > 0 ? (
-                    this.renderItemsList(filteredItems)
-                  ) : (
-                    <View style={styles.emptyMessageContainer}>
-                      <FontAwesome
-                        name="warning"
-                        color={theme.warningColor}
-                        size={24}
-                      />
-                      <Text style={styles.modalItem}>{emptyMessage}</Text>
-                    </View>
-                  )}
-                </View>
-              </TouchableWithoutFeedback>
-            </KeyboardAvoidingView>
+              {/*
+                Usamos o KeyboardAvoidingView para evitar que o modal fique atrás do teclado 
+                no projeto equipamento-virtual, pois como o app usa StatusBar oculta (modo fullscreen), o 
+                ajuste automático via adjustResize não funciona corretamente.
+              */}
+            {useKeyboardAvoidingView ? (
+              <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              >
+                {conteudoModal}
+              </KeyboardAvoidingView>
+            ) : (
+              conteudoModal
+            )}
           </Modal>
         </View>
       </TouchableWithoutFeedback>
